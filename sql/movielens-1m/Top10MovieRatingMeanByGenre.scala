@@ -2,7 +2,7 @@
 /////// Get top 10 most rated movies by Genres
 ////////////////////////////
 import org.apache.spark.sql.functions._
-
+import org.apache.spark.sql.types.StringType
 
 val movieDF = sc.textFile("/user/maria_dev/rawdata/movielens/1m/movies").
 	map((s: String) => {
@@ -40,8 +40,8 @@ s"""
 
 val df = spark.sql(query).
 	filter($"position" <= 10).
-	select($"genre", $"title", $"position").
+	select($"genre", $"title", $"avg_rating", $"position").
 	groupBy($"genre").
 	pivot("position").
-	agg(min($"title"))
+	agg(min(concat($"title", lit(" - ").cast(StringType), $"avg_rating".cast(StringType))))
 

@@ -21,3 +21,12 @@ Exercises
 	5. Get the average rating  by genres - Genre, total_rating, rating_count, average (GenreRatingSummary.scala)
 	6. Get the full rating summaries for each combination of user group in exercise 2. - Gender, Age, Occupation, MovieTitle, Rating, Timestamp order by Timestamp desc (SummaryByUserDemo.scala)
 
+
+
+Take away
+==============
+	4. Get top 10 most rated movies by Genres (Top10MovieRatingMeanByGenre.scala)
+	7. Create a pivot table for users such that we have occuption on the rows and gender on the column.
+											Gender
+									Female			Male		
+		occuptions		Unemployed	  x				 y

@@ -1,0 +1,18 @@
+ 
+
+ 1) Try to implement the functionality without spark
+
+ 2) Test your functionality junit to test 
+
+ 3) write a function as a wrapper (scala only) -  f: (Int => Int) = (a: Int) = {0}
+
+ 4) Test the functionality using scalatest
+
+ 5) val funcUDF = org.apache.spark.sql.functions.udf((a: Int) => f(a))
+
+ 6) If you are using the function (funcUDF) in a query, you will first have to register the function
+ 	spark.udf.register("func_udf", f)
+
+
+EXTERNAL SERVICE CALL
+If the function f requires an external service that will be called over any protocol, use mapPartition instead of withColumn.
