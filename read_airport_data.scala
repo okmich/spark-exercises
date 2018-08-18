@@ -3,6 +3,8 @@
 val airportDF = spark.read.options(Map("header" -> "true", "sep"->",", "inferSchema" -> "true")).
 csv("/user/maria_dev/rawdata/flight_data/airports").cache
 
+val flightDF = spark.read.table("flight_performance.flight")
+
 val airport2DF = airportDF.select(
 $"iata".as("iata2"), $"airport".as("airport2"), $"city".as("city2"), 
 $"state".as("state2"), $"country".as("country2"), $"lat".as("lat2"), 
@@ -20,3 +22,10 @@ val s = """
 """
 
 spark.sql(s).show
+
+val flightPairDF =  flightDF.join(airportDF, $"origin" === $"iata").
+join(airport2DF, $"dest" === $"iata2").
+select("airport", "airport2", "distance").cache
+
+flightPairDF.count
+flightPairDF.count

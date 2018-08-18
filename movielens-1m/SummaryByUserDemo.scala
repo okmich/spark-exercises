@@ -23,6 +23,7 @@ val userDF = sc.textFile("/user/maria_dev/rawdata/movielens/1m/users").
 		(fields(0).toInt, fields(1), fields(2), fields(3), fields(4))
 	}).toDF("uid", "gender", "age", "occupation", "zip")
 
+val partitionedDF = ratingDF.repartition(20, $"movieid")
 
 val dataDF = ratingDF.join(movieDF, $"movieid" === $"id").
 	join(userDF, $"userid" === $"uid").

@@ -19,7 +19,7 @@ Exercises
 	3. Get top N most rated movies (Top50MovieRatingMean.scala)
 	4. Get top 10 most rated movies by Genres (Top10MovieRatingMeanByGenre.scala)
 	5. Get the average rating  by genres - Genre, total_rating, rating_count, average (GenreRatingSummary.scala)
-	6. Get the full rating summaries for each combination of user group in exercise 2. - Gender, Age, Occupation, MovieTitle, Rating, Timestamp order by Timestamp desc (SummaryByUserDemo.scala)
+	6. Get the full rating summaries for each combination of user group in exercise 2. - Gender, Age, Occupation, MovieTitle, Rating, event_year, event_month, event_day order by event_year, event_month, event_day desc (SummaryByUserDemo.scala)
 
 
 
