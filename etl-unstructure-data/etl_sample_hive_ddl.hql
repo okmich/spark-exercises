@@ -1,0 +1,86 @@
+create database ginnie;
+use ginnie;
+
+create external table llmon1_file_header(
+    file_header string, 
+    file_name string,
+    file_number smallint, 
+    correction_flag string,
+    file_date date,
+    file_date_generated date) stored as orc;
+
+create external table llmon1_pool(
+    cusip string,
+    pool_id string,
+    issue_type string,
+    pool_type string,
+    pool_issue_date date,
+    issuer_id string,
+    as_of_date date) stored as orc;
+
+create external table llmon1_loan(
+    pool_id string,
+    seqnum string,
+    issuer_id string,
+    agency string,
+    loan_purpose string,
+    refinance_type string,
+    first_payment_date    date,
+    maturity_date string,
+    interest_rate string,
+    opb_pool_issuance string,
+    upb_pool_issuance string,
+    upb_loan string,
+    original_term smallint,
+    loanage smallint,
+    rem_loan_term smallint,
+    month_delinquent smallint,
+    month_prepaid smallint,
+    loan_gross_margin string,
+    loan_to_value string,
+    combined_ltv string,
+    total_debt_expense_ratio string,
+    credit_score string,
+    down_payment_assistance string,
+    buy_down_status string,
+    upfront_mip string,
+    annual_mip string,
+    borrower_count string,
+    first_time_buyer string,
+    property_type string,
+    state string,
+    msa string,
+    third_party_origination_type string,
+    curr_month_liquidation_flag string,
+    removal_reason string,
+    as_of_date string,
+    loan_origination_date date,
+    seller_issue_id string,
+    index_type string,
+    look_back_period string,
+    interest_rate_change_date date,
+    initial_int_rate_cap string,
+    subsequent_int_rate_cap string,
+    life_int_rate_cap string,
+    nxt_int_rate_change_ceiling string,
+    lifetime_int_rate_ceiling string,
+    lifetime_int_rate_floor string,
+    prospective_int_rate string) stored as orc;
+
+create external table llmon1_active_pool_summary(
+    cusip string,
+    pool_id string,
+    issue_type string,
+    pool_type string,
+    pool_issue_date date,
+    issuer_id string,
+    as_of_date date,
+    loan_cnt long) stored as orc;
+
+create external table llmon1_file_trailer(
+    file_name string,
+    file_no string,
+    pool_cnt long,
+    loan_cnt long,
+    total_record_cnt long,
+    as_of_date date) stored as parquet;
