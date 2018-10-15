@@ -99,16 +99,16 @@ val loanRecord = records.filter(_.charAt(0) == 'L').toSeq
 val poolActiveRecord = records.filter(_.charAt(0) == 'T').toSeq
 val fileTrailerRecord = records.filter(_.charAt(0) == 'Z').toSeq
 
-def parseLine(line: String, structure: Seq[(String, Int, Int)]) : Seq[Any] = {
-    import scala.collection.mutable.ArrayBuffer
-    val ret : ArrayBuffer[Any]  = new ArrayBuffer()
-    for (v <- structure){
-        val (beginIdx, len) = (v._2, v._3)
-        val fieldValue : Any = if (line.length > len + beginIdx){
-            line.substring(beginIdx -1, len + beginIdx - 1).trim
-        } else null
-        ret.append(fieldValue)
-    }
-    ret
+def parseLine2(line: String, structure: Seq[(String, Int, Int, String)]) : Seq[Any] = {
+import scala.collection.mutable.ArrayBuffer
+val ret : ArrayBuffer[Any]  = new ArrayBuffer()
+for (v <- structure){
+    val (beginIdx, len) = (v._2, v._3)
+    val fieldValue : Any = if (line.length >= len + beginIdx -1){
+        line.substring(beginIdx -1, len + beginIdx - 1).trim
+    } else null
+    ret.append(fieldValue)
+}
+ret
 }
 
