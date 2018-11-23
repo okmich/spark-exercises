@@ -4,18 +4,15 @@ use airline_performance;
 
 -- create external table for flight
 create external table flight
-(year smallint, month tinyint, dayofmonth tinyint,dayofweek tinyint,
-  deptime smallint, crsdeptime smallint, arrtime smallint, crsarrtime smallint, 
-  uniquecarrier string, flightnum string, 
-  tailnum string, actualelapsedtime smallint,
-  crselapsedtime smallint, airtime smallint, 
-  arrdelay smallint, depdelay smallint, 
-  origin string, dest string, distance smallint, 
-  taxiin string, taxiout string,
-  cancelled string, cancellationcode string, 
-  diverted string, carrierdelay smallint,
-  weatherdelay smallint, nasdelay smallint, 
-  securitydelay smallint, lateaircraftdelay smallint
+( year string, month string, dayofmonth string, dayofweek string,
+  deptime string, crsdeptime string, arrtime string, crsarrtime string, 
+  uniquecarrier string, flightnum string, tailnum string, 
+  actualelapsedtime int, crselapsedtime int, airtime int, 
+  arrdelay int, depdelay int, 
+  origin string, dest string, 
+  distance int, taxiin int, taxiout int,
+  cancelled string, cancellationcode string, diverted string, 
+  carrierdelay int, weatherdelay int, nasdelay int, securitydelay int, lateaircraftdelay int
  ) stored as orc
 location '/user/maria_dev/processed/flight_data/flights';
 
