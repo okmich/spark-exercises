@@ -21,7 +21,7 @@ hdfs dfs -mkdir -p /user/maria_dev/rawdata/flight_data/planes
 echo "====>>> copy the local files to hdfs"
 hdfs dfs -moveFromLocal 2006.csv /user/maria_dev/rawdata/flight_data/flights
 hdfs dfs -moveFromLocal 2007.csv /user/maria_dev/rawdata/flight_data/flights
-hdfs dfs -moveFromLocal carriers.csv 
 
 hdfs dfs -moveFromLocal airports.csv /user/maria_dev/rawdata/flight_data/airports
 hdfs dfs -moveFromLocal plane-data.csv /user/maria_dev/rawdata/flight_data/planes
+hdfs dfs -moveFromLocal carriers.csv /user/maria_dev/rawdata/flight_data/carriers
