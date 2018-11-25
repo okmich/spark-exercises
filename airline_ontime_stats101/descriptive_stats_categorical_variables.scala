@@ -12,8 +12,6 @@ val airportDF = airports.select("iata", "airport", "city", "state", "country").c
 //to describe categorical variables
 airportDF.describe().show
 
-
-
 // analyzing the plane records
 val planeInfo = spark.read.table("airline_performance.plane_info").where("tailnum <> 'tailnum'").cache
 

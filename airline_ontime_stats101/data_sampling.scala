@@ -14,17 +14,18 @@ flightDF.sample(false, 0.1, 3440303)
 flightDF.groupBy("year").count.show
 
 //sample by year - 50%
-val stratSampleDF = flightDF.stat.sampleBy("year", Map("2006" -> 0.5,"2007" -> 0.5), 1234567)
+val stratSampleDF = flightDF.stat.sampleBy("year", Map("2006" -> 0.49,"2007" -> 0.51), 1234567)
 
 //sample 20% of each year's value by month such that we take 20% of each month
 val stratSampleDF2006 = stratSampleDF.where($"year" === 2006)
 val stratSampleDF2007 = stratSampleDF.where($"year" === 2007)
 
+import org.apache.spark.sql.{DataFrame, Row}
 def sampleByField(df: DataFrame, f: String, percent: Double) : DataFrame = {
 	val fractions = df.groupBy(f).count.collect.
 		map((r:Row) => r.getAs[Int](0) -> percent).toMap
 
-	df.stat.sampleBy(f, res22, 1234567)
+	df.stat.sampleBy(f, fractions, 1234567)
 }
 
 //create a sample of proportional number of years and month
