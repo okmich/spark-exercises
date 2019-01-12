@@ -1,0 +1,12 @@
+To make your local cassandra installation accessible from a remote machine, make these changes to your cassandra.yaml file in the conf folder
+
+start_rpc: true
+rpc_address: 0.0.0.0
+broadcast_rpc_address: [node-ip]
+listen_address: [node-ip]
+seed_provider:
+  - class_name: ...
+    - seeds: "[node-ip]"
+
+
+Source: https://gist.github.com/andykuszyk/7644f334586e8ce29eaf8b93ec6418c4

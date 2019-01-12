@@ -1,0 +1,1 @@
+{"type":"struct","fields":[{"name":"test_id","type":"integer","nullable":true,"metadata":{}},{"name":"rfr_id","type":"integer","nullable":true,"metadata":{}},{"name":"rfr_type_code","type":"string","nullable":true,"metadata":{}},{"name":"location_id","type":"integer","nullable":true,"metadata":{}},{"name":"dangerous_mark","type":"string","nullable":true,"metadata":{}}]}
