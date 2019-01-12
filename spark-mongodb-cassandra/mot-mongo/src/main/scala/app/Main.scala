@@ -1,5 +1,6 @@
 package app
 
+import com.mongodb.WriteConcern
 import com.mongodb.spark._
 import com.mongodb.spark.config._
 
@@ -28,14 +29,13 @@ object Main {
 	def main(args: Array[String]) : Unit = {
 		val params = parseArg(args)
 		if (params.size < 4){
-			println("Usage: -test_result_dir=[hdfspath] -test_item_dir=[hdfspath] -lookup_data_dir=[hdfspath] -schema_file_dir=[localpath]  -mongoserver=[ip]")
+			println("Usage: -test_result_dir=[hdfspath] -test_item_dir=[hdfspath] -lookup_data_dir=[hdfspath] -mongoserver=[ip]")
 			System.exit(-1)
 		}
 
 		val testResultDir= params("test_result_dir")
 		val testItemDir= params("test_item_dir")
-		val lookupDir= params("supp_data_path")
-		val schemaDir = params("schema_file_dir")
+		val lookupDir= params("lookup_data_dir")
 		val mongoHost = params("mongoserver")
 
 		//initialize spark
@@ -48,102 +48,87 @@ object Main {
 		import sparkSession.implicits._
 
 		//create the dataframes
-		val testItemDF = sparkSession.read.schema(readSchemaFromFile(schemaDir, TEST__ITEM__SCHEMA)).csv(testItemDir)
-		val testResultDF = sparkSession.read.schema(readSchemaFromFile(schemaDir, TEST__RESULT__SCHEMA)).csv(testResultDir).cache
-		val testDetailsDF = sparkSession.read.schema(readSchemaFromFile(schemaDir, TEST__DETAILS__SCHEMA)).csv(lookupDir)
+		val testItemDF = sparkSession.read.option("header", "true").option("sep", "|").
+				schema(readSchemaFromFile(TEST__ITEM__SCHEMA)).csv(testItemDir)
+		val testResultDF = sparkSession.read.option("header", "true").option("sep", "|").
+				schema(readSchemaFromFile(TEST__RESULT__SCHEMA)).csv(testResultDir).cache
+		val testDetailsDF = sparkSession.read.option("header", "true").option("sep", "|").
+				schema(readSchemaFromFile(TEST__DETAILS__SCHEMA)).csv(lookupDir + "/item_details")
 
-		val enrichedResultDF = enrichResultDF(sparkSession, testResultDF, lookupDir)
-		//write this into mongodb collection
-		val writeConfig = WriteConfig("mot", "testresult", s"mongodb://$mongoHost/mot", 10000, WriteConcern.MAJORITY)
-		MongoSpark.save(enrichedResultDF.write.mode("append"), writeConfig)
-
-		val enrichedItemDF = enrichItemDF(sparkSession, testItemDF, testResultDF, testDetailsDF, lookupDir)
-		//write this into mongodb collection
-		val writeConfig = WriteConfig("mot", "testitem", s"mongodb://$mongoHost/mot", 10000, WriteConcern.MAJORITY)
-		MongoSpark.save(enrichedItemDF.write.mode("append"), writeConfig)
-	}
-
-
-	def enrichResultDF(spark: SparkSession, baseDF: DataFrame, lookupDir: String) : DataFrame = {
-		import spark.implicits._
 		//get all the lookup tables
-		val testTypeDF = readLookupTable(spark, lookupDir, "mdr_test_types")
-		val testOutcomeDF = readLookupTable(spark, lookupDir, "mdr_test_outcome")
-		val fuelTypeDF = readLookupTable(spark, lookupDir, "mdr_fuel_types")
-		val itemLocationDF = readLookupTable(spark, lookupDir, "mdr_rfr_location")
+		val itemGroupDF = readLookupTable(sparkSession, lookupDir, "item_group")
+		val testTypeDF = readLookupTable(sparkSession, lookupDir, "mdr_test_types")
+		val testOutcomeDF = readLookupTable(sparkSession, lookupDir, "mdr_test_outcome")
+		val fuelTypeDF = readLookupTable(sparkSession, lookupDir, "mdr_fuel_types")
+		val itemLocationDF = readLookupTable(sparkSession, lookupDir, "mdr_rfr_location")
 
-		baseDF.join(testTypeDF, $"test_type" === $"type_code", "left_outer").
-			join(testOutcomeDF, $"test_result" === $"result_code", "left_outer").
-			join(fuelTypeDF, $"fuel_type" === fuelTypeDF("type_code"), "left_outer").
-			select($"test_id",$"vehicle_id", $"test_date", $"test_class_id", 
-				struct($"test_type".as("type_code"), testTypeDF("test_type").as("description")).as("test_type"), 
-				struct($"result_code", testOutcomeDF("result").as("description")).as("test_result"), 
-				struct(fuelTypeDF("type_code"), fuelTypeDF("fuel_type").as("description")).as("fuel_type"), 
-				$"test_milage",$"postcode_area", $"make", $"model", 
-				$"cylinder_capacity", $"first_use_date")
+		// MOT Test datasetmodel in mongo
+		// ==============================
+		// test_result
+		// 	 test_type
+		// 	 test_outcome
+		// 	 fuel_type
+
+		// 	 item_items
+		// 		item_location
+		// 		item_details
+		// 		item_group
+
+		//start building the mongodb full document 
+		val parentIGDF = itemGroupDF.as("parentIGDF")
+		val itemGroupJoinDF = itemGroupDF.join(parentIGDF, (itemGroupDF("parent_id") === $"parentIGDF.test_item_id") 
+					&& (itemGroupDF("test_item_set_section_id") === $"parentIGDF.test_class_id"), "left_outer").
+				select(itemGroupDF("test_item_id"), itemGroupDF("test_class_id"), 
+					itemGroupDF("test_item_set_section_id"), itemGroupDF("item_name"), 
+					struct($"parentIGDF.test_item_id", $"parentIGDF.item_name").as("parent"))
+
+		val tdDF = testDetailsDF.join(itemGroupJoinDF, testDetailsDF("test_item_set_section_id") === itemGroupJoinDF("test_item_id") && 
+			testDetailsDF("test_class_id") === itemGroupJoinDF("test_class_id"), "left_outer").
+				select($"rfr_id", testDetailsDF("test_class_id"), testDetailsDF("test_item_id"), $"minor_item", $"rfr_desc", 
+					$"rfr_loc_marker", $"rfr_insp_manual_desc", $"rfr_advisory_text", testDetailsDF("test_item_set_section_id"), 
+					$"item_name".as("item_group_name"), $"parent")
+
+		val enrichedTestItemDF = testItemDF.join(itemLocationDF, testItemDF("location_id") === itemLocationDF("id")).
+			join(testResultDF, testItemDF("test_id") === testResultDF("test_id")).
+			join(tdDF, testItemDF("rfr_id") === tdDF("rfr_id") && testResultDF("test_class_id") === tdDF("test_class_id"), "left_outer").
+			select(testItemDF("test_id"), testItemDF("rfr_id"), $"rfr_type_code", 
+				struct($"location_id", $"lateral", $"longitudinal", $"vertical").as("location"), 
+				$"dangerous_mark", 
+				struct(tdDF("test_class_id"), $"test_item_id", $"minor_item", $"rfr_desc", $"rfr_loc_marker", 
+					$"rfr_insp_manual_desc", $"rfr_advisory_text", $"test_item_set_section_id", $"item_group_name", 
+					$"rfr_advisory_text", $"parent").as("test_detail"))
+
+		val groupedItemDF = enrichedTestItemDF.groupBy("test_id").agg(collect_set(
+				struct($"test_id", $"rfr_id",  $"rfr_type_code", $"location", $"dangerous_mark", $"test_detail")
+			).as("test_items"))
+
+		val enrichedTestResultDF = testResultDF.join(fuelTypeDF, testResultDF("fuel_type") === fuelTypeDF("type_code"), "left_outer").
+			join(testTypeDF, testResultDF("test_type") === testTypeDF("type_code"), "left_outer").
+			join(testOutcomeDF, testResultDF("test_result") === testOutcomeDF("result_code"), "left_outer").
+			join(groupedItemDF, testResultDF("test_id") === groupedItemDF("test_id"), "left_outer").
+				select(testResultDF("test_id"), $"vehicle_id", $"test_date", $"test_class_id", 
+				struct(testResultDF("test_type").as("type_code"), testTypeDF("test_type")).as("test_type"),
+				struct(testResultDF("test_result").as("result_code"), testOutcomeDF("result")).as("outcome"),
+				$"test_mileage", $"postcode_area", $"make", $"model", $"colour", 
+				struct(testResultDF("fuel_type").as("fuel_type_code"), fuelTypeDF("fuel_type")).as("fuel"),
+				$"cylinder_capacity", $"first_use_date", $"test_items")	
+
+		//write this into mongodb collection
+		val writeConfig = WriteConfig("mot", "test_result", s"mongodb://$mongoHost/mot", 10000, WriteConcern.W1)
+		MongoSpark.save(enrichedTestResultDF.write.mode("append"), writeConfig)
 	}
-
-	def enrichItemDF(spark: SparkSession, baseDF: DataFrame, testResultDF: DataFrame, testDetailsDF: DataFrame, lookupDir: String) : DataFrame = {
-		val itemGroupDF = readLookupTable(spark, lookupDir, "item_group")
-		val itemLocationDF = readLookupTable(spark, lookupDir, "mdr_rfr_location")
-
-		testResultDF.join(baseDF, testResultDF("test_id") === baseDF("test_id")).
-			join(testDetailsDF,  (testDetailsDF("rfr_id") === baseDF("rfr_id")) && 
-				(testDetailsDF("test_class_id") === testResultDF("test_class_id"))).
-			join(itemGroupDF, (itemGroupDF("test_item_id") === testDetailsDF("test_item_set_section_id")) && 
-				itemGroupDF("test_class_id") === testDetailsDF("test_class_id")).
-			join(itemLocationDF, (itemLocationDF("id") === baseDF("location_id"))).
-			select(baseDF("test_id"), baseDF("rfr_id"), baseDF("rfr_type"), 
-				baseDF("d_mark"), testDetailsDF("test_class_id"), 
-				testDetailsDF("test_item_id"), testDetailsDF("minor_item"), testDetailsDF("rfr_desc"), 
-				testDetailsDF("rfr_loc_marker"), testDetailsDF("rfr_insp_manual_desc"), 
-				testDetailsDF("rfr_advisory_text"), testDetailsDF("test_item_set_section_id"), 
-				itemGroupDF("parent_id"), itemGroupDF("test_item_set_section_id"), itemGroupDF("item_name"), 
-				struct(baseDF("location_id"), itemLocationDF("lateral"), 
-					itemLocationDF("longitudinal"), itemLocationDF("vertical")).as("location"))
-	}
-
 	
 	private def readLookupTable(spark: SparkSession, lookupDir: String, tablename: String) : DataFrame = {
 		spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).
-			csv(s"lookupDir/$tablename")
+			csv(s"$lookupDir/$tablename")
 	}
 	
-	private def readSchemaFromFile(schemaDir: String, schemaFile: String) : StructType = {
+	private def readSchemaFromFile(schemaFile: String) : StructType = {
 		import scala.io.Source
 
-		val fileName = Paths.get(schemaDir, schemaFile).toFile.getPath
-		val json = Source.fromFile(fileName).getLines.next
+		val fileStream = getClass.getClassLoader.getResourceAsStream(s"schema/$schemaFile")
+		val json = Source.fromInputStream(fileStream).getLines.next
 		DataType.fromJson(json).asInstanceOf[StructType]
-	}
-
-
-	def rowToDocument(row: Row): Document = {
-		def conform(sf: StructField, obj: Any) : Any = {
-			sf.dataType match {
-				case _: BooleanType => (if (obj == null) null else new java.lang.Boolean(obj.toString()))
-				case _: DateType => (if (obj == null) null else new BsonDateTime((obj.asInstanceOf[java.sql.Date]).getTime))
-				case _: DecimalType => (if (obj == null) null else obj.toString().toDouble)
-				case _: DoubleType | FloatType => (if (obj == null) null else obj.toString().toDouble)
-				case _: IntegerType => (if (obj == null) null else obj.toString().toInt)
-				case _: LongType | ShortType => (if (obj == null) null else obj.toString().toLong)
-				case _: StringType => (if (obj == null) null else obj.toString())
-				case _: TimestampType => (if (obj == null) null else new BsonDateTime((obj.asInstanceOf[java.sql.Timestamp]).getTime))
-				case _: VarcharType => (if (obj == null) null else obj.toString())
-				case _: StructType =>  (if (obj == null) null else rowToDocument(obj.asInstanceOf[Row]))
-				case e: ArrayType => {
-					val innerValues = (obj.asInstanceOf[WrappedArray[Any]]).map((o : Any) => if (o == null) null else conform(new StructField("", e.elementType), o))
-					
-					innerValues.asJava
-				}
-				case _ => null
-			}
-		}
-
-		val doc = new Document()
-		val valuesAndTypes : Seq[(Any, StructField)] = row.toSeq.zip(row.schema)
-		valuesAndTypes.foreach((t: (Any, StructField)) => doc.put(t._2.name, conform(t._2, t._1)))
-		doc
 	}
 
 	private def parseArg(args: Array[String]) : Map[String, String] = {

@@ -1,0 +1,20 @@
+MOT Test datasetmodel in mongo
+==============================
+test_result
+	test_type
+	test_outcome
+	fuel_type
+
+	item_items
+		item_location
+		item_details
+			item_group
+				item_group
+					item_group
+						item_group
+							item_group
+
+
+
+
+

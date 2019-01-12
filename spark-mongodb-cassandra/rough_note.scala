@@ -1,4 +1,4 @@
-
+spark-shell --packages org.mongodb.spark:mongo-spark-connector_2.11:2.3.0 --conf "spark.mongodb.input.uri=mongodb://192.168.8.102/movielens.users?readPreference=primaryPreferred" --conf "spark.mongodb.output.uri=mongodb://192.168.8.102/movielens.users"
 
 val testItemDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/test_item")
 
@@ -53,9 +53,9 @@ val json = Source.fromFile(file).getLines.next
 DataType.fromJson(json).asInstanceOf[StructType]
 }
 
-val testItemDF = spark.read.schema(getSchemaFromFile("testitem.json")).csv("/user/maria_dev/mot_data/test_item")
-val testResultDF = spark.read.schema(getSchemaFromFile("testresult.json")).csv("/user/maria_dev/mot_data/test_result")
-val testDetailsDF = spark.read.schema(getSchemaFromFile("testdetail.json")).csv("/user/maria_dev/mot_data/item_details")
+val testItemDF = spark.read.option("header", "true").option("sep", "|").schema(getSchemaFromFile("testitem.json")).csv("/user/maria_dev/mot_data/test_item")
+val testResultDF = spark.read.option("header", "true").option("sep", "|").schema(getSchemaFromFile("testresult.json")).csv("/user/maria_dev/mot_data/test_result")
+val testDetailsDF = spark.read.option("header", "true").option("sep", "|").schema(getSchemaFromFile("testdetail.json")).csv("/user/maria_dev/mot_data/item_details")
 
 
 
@@ -109,39 +109,6 @@ or try
 MongoSpark.save(df.write.option("collection", "collection_name").mode("save mode"))
 
 
-
-
-
-//test result
-testResultDF.join(testTypeDF, $"test_type" === $"type_code", "left_outer").
-	join(testOutcomeDF, $"test_result" === $"result_code", "left_outer").
-	join(fuelTypeDF, $"fuel_type" === fuelTypeDF("type_code"), "left_outer").
-	select($"test_id",$"vehicle_id", $"test_date", $"test_class_id", 
-		struct($"test_type".as("type_code"), testTypeDF("test_type").as("description")).as("test_type"), 
-		struct($"result_code", testOutcomeDF("result").as("description")).as("test_result"), 
-		struct(fuelTypeDF("type_code"), fuelTypeDF("fuel_type").as("description")).as("fuel_type"), 
-		$"test_milage",$"postcode_area", $"make", $"model", 
-		$"cylinder_capacity", $"first_use_date")
-
-//test item
-testResultDF.join(testItemDF, testResultDF("test_id") === testItemDF("test_id")).
-	join(testDetailsDF,  (testDetailsDF("rfr_id") === testItemDF("rfr_id")) && 
-		(testDetailsDF("test_class_id") === testResultDF("test_class_id"))).
-	join(itemGroupDF, (itemGroupDF("test_item_id") === testDetailsDF("test_item_set_section_id")) && 
-		itemGroupDF("test_class_id") === testDetailsDF("test_class_id"))..
-	join(itemLocationDF, (itemLocationDF("id") === testItemDF("location_id"))).
-	select(testItemDF("test_id"), testItemDF("rfr_id"), testItemDF("rfr_type"), 
-		testItemDF("d_mark"), testDetailsDF("test_class_id"), 
-		testDetailsDF("test_item_id"), testDetailsDF("minor_item"), testDetailsDF("rfr_desc"), 
-		testDetailsDF("rfr_loc_marker"), testDetailsDF("rfr_insp_manual_desc"), 
-		testDetailsDF("rfr_advisory_text"), testDetailsDF("test_item_set_section_id"), 
-		itemGroupDF("parent_id"), itemGroupDF("test_item_set_section_id"), itemGroupDF("item_name"), 
-		struct(testItemDF("location_id"), itemLocationDF("lateral"), 
-			itemLocationDF("longitudinal"), itemLocationDF("vertical")).as("location"))
-
-
-
-
 spark-shell --conf "spark.mongodb.input.uri=mongodb://192.168.8.101/wakapoll.response" \
                   --conf "spark.mongodb.output.uri=mongodb://192.168.8.101/wakapoll.response" \
                   --packages org.mongodb.spark:mongo-spark-connector_2.11:2.4.0
@@ -157,3 +124,12 @@ MongoSpark.save(itemGroupDF.write.mode("overwrite"), writeConfig)
 
 val df = MongoSpark.load(sparkSession)
 df.printSchema()
+
+
+
+
+spark-submit --master yarn --class app.Main ./mot-mongo-assembly-0.1.0-SNAPSHOT.jar -test_result_dir=/user/maria_dev/mot_data/test_result -test_item_dir=/user/maria_dev/mot_data/test_item -lookup_data_dir=/user/maria_dev/mot_data/lookup -mongoserver=192.168.8.101
+
+
+
+

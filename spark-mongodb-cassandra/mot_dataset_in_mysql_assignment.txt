@@ -1,0 +1,9 @@
+a) import the dataset for one year into a mysql database table
+b) write your queries against the table
+c) import the dataset for another year
+d) write your queries
+e) do c) and d) for another 2 year
+f) write the queries 
+g) partitioning the table 
+h) load the partitioned table
+i) write the queries

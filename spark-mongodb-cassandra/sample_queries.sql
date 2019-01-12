@@ -1,14 +1,3 @@
--- Test Result - This contains details of individual MOT tests and of the vehicle tested. All tests which could result in a valid pass result are included. Datasets are provided by calendar year and can be concatenated if required.
-
--- Test Item - This contains details of individual MOT test failure items and advisory notices. Datasets are split by calendar year and can be concatenated if required.
-
--- Test Item Detail - This contains details of individual RfRs
-
--- Test Item Group - This contains details of RfR groupings within the test item hierarchy. The top level group for a Test Class is always ‘Vehicle’, with a Test Item ID of 0. 
-
--- Failure Location - Reference for Location IDs in Test Item Table
-
-
 -- Initial, Completed Test Volumes by Class 2009-10 (As calculated in DVSA effectiveness report)
 -- ==============
 SELECT TESTCLASSID

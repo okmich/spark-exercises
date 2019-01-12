@@ -9,7 +9,7 @@ lazy val root = (project in file(".")).
       version      := "0.1.0-SNAPSHOT"
     )),
     name := "mot-mongo",
-    libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.3.0",
-    libraryDependencies += "org.mongodb.spark" %% "mongo-spark-connector" % "2.4.0",
+    libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.3.0" % "provided",
+    libraryDependencies += "org.mongodb.spark" %% "mongo-spark-connector" % "2.3.0",
     libraryDependencies += scalaTest % Test
   )
