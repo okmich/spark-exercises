@@ -62,7 +62,7 @@ object Main {
 		val fuelTypeDF = readLookupTable(sparkSession, lookupDir, "mdr_fuel_types")
 		val itemLocationDF = readLookupTable(sparkSession, lookupDir, "mdr_rfr_location")
 
-		// MOT Test datasetmodel in mongo
+		// MOT Test dataset model in mongo
 		// ==============================
 		// test_result
 		// 	 test_type
@@ -72,7 +72,8 @@ object Main {
 		// 	 item_items
 		// 		item_location
 		// 		item_details
-		// 		item_group
+		// 			item_group
+		// 				item_group
 
 		//start building the mongodb full document 
 		val parentIGDF = itemGroupDF.as("parentIGDF")

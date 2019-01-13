@@ -4,17 +4,17 @@ val testItemDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "infer
 
 val testResultDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/test_result")
 
-val testDetailsDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/item_details")
+val testDetailsDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/item_details")
 
-val itemGroupDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/item_group")
+val itemGroupDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/item_group")
 
-val testTypeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/mdr_test_types")
+val testTypeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/mdr_test_types")
 
-val testOutcomeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/mdr_test_outcome")
+val testOutcomeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/mdr_test_outcome")
 
-val fuelTypeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/mdr_fuel_types")
+val fuelTypeDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/mdr_fuel_types")
 
-val itemLocationDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/mdr_rfr_location")
+val itemLocationDF = spark.read.options(Map("sep" -> "|", "header" -> "true", "inferSchema" -> "true")).csv("/user/maria_dev/mot_data/lookup/mdr_rfr_location")
 
 
 scala> testDetailsDF.count
@@ -119,7 +119,8 @@ import com.mongodb.spark.config._
 val writeConfig = WriteConfig(Map("collection" -> "spark", "writeConcern.w" -> "majority"), Some(WriteConfig(sc)))
 val writeConfig = WriteConfig("mot", "item_group", "mongodb://192.168.8.102/mot", 10000, WriteConcern.MAJORITY)
 MongoSpark.save(itemGroupDF.write.mode("overwrite"), writeConfig)
-
+// MongoSpark.save(itemGroupDF.coalesce(50).write.mode("overwrite"), writeConfig)
+// MongoSpark.save(itemGroupDF.repartition(50).write.mode("overwrite"), writeConfig)
 
 
 val df = MongoSpark.load(sparkSession)
@@ -133,3 +134,4 @@ spark-submit --master yarn --class app.Main ./mot-mongo-assembly-0.1.0-SNAPSHOT.
 
 
 
+ --conf spark.sql.shuffle.partitions=200

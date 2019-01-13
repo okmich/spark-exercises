@@ -13,8 +13,8 @@ gunzip test_item_2005.txt.gz
 
 hdfs dfs -mkdir -p /user/maria_dev/mot_data/test_item
 hdfs dfs -mkdir -p /user/maria_dev/mot_data/test_result
-hdfs dfs -mkdir -p /user/maria_dev/mot_data/item_details
-hdfs dfs -mkdir -p /user/maria_dev/mot_data/item_group
+hdfs dfs -mkdir -p /user/maria_dev/mot_data/lookup/item_details
+hdfs dfs -mkdir -p /user/maria_dev/mot_data/lookup/item_group
 hdfs dfs -mkdir -p /user/maria_dev/mot_data/lookup/mdr_fuel_types
 hdfs dfs -mkdir -p /user/maria_dev/mot_data/lookup/mdr_rfr_location
 hdfs dfs -mkdir -p /user/maria_dev/mot_data/lookup/mdr_test_outcome
