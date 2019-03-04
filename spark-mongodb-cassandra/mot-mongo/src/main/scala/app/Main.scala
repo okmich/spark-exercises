@@ -139,4 +139,29 @@ object Main {
 			(parts(0).toLowerCase().substring(1) -> parts(1))
 		}).toMap
 	}
+
+	private def getItemGroupHierarchyDF(spark: SparkSession, itemGroupDF: DataFrame) : DataFrame = {
+		import spark.implicits._
+		val baseDF = itemGroupDF.cache
+		val level1DF = baseDF.as("level1DF")
+		val level2DF = baseDF.as("level2DF")
+		val level3DF = baseDF.as("level3DF")
+		val level4DF = baseDF.as("level4DF")
+		val itemGroupJoinDF = baseDF.join(level1DF, (baseDF("parent_id") === $"level1DF.test_item_id") 
+					&& (baseDF("test_class_id") === $"level1DF.test_class_id"), "left_outer").
+				join(level1DF, ($"level1DF.parent_id") === $"level2DF.test_item_id") 
+					&& ($"level1DF.test_class_id") === $"level2DF.test_class_id"), "left_outer").
+				join(level2DF, ($"level2DF.parent_id") === $"level3DF.test_item_id") 
+					&& ($"level2DF.test_class_id") === $"level3DF.test_class_id"), "left_outer").
+				join(level3DF, ($"level3DF.parent_id") === $"level4DF.test_item_id") 
+					&& ($"level3DF.test_class_id") === $"level4DF.test_class_id"), "left_outer").
+				join(level4DF, ($"level4DF.parent_id") === $"level5DF.test_item_id") 
+					&& ($"level4DF.test_class_id") === $"level5DF.test_class_id"), "left_outer").
+				select(baseDF("test_item_id"), baseDF("test_class_id"),
+					baseDF("item_name").as("parent_level_1"), 
+					$"level1DF.item_name".as("parent_level_2"),
+					$"level2DF.item_name".as("parent_level_3"),
+					$"level3DF.item_name".as("parent_level_4"),
+					$"level4DF.item_name".as("parent_level_5"))
+	}
 }

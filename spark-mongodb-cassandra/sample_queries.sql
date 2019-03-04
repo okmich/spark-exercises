@@ -1,14 +1,12 @@
 -- Initial, Completed Test Volumes by Class 2009-10 (As calculated in DVSA effectiveness report)
 -- ==============
-SELECT TESTCLASSID
-	,TESTRESULT
+SELECT TESTCLASSID, TESTRESULT
 	,COUNT(*) AS TEST_VOLUME
 FROM TESTRESULT
 WHERE TESTTYPE=’NT’
 	AND TESTRESULT IN (‘P’,’F’,’PRS’)
 	AND TESTDATE BETWEEN ‘2009-04-01’ AND ‘2010-03-31’
-GROUP BY TESTCLASSID
-	,TESTRESULT;
+GROUP BY TESTCLASSID, TESTRESULT;
 
 
 -- RfR Volumes and Distinct Test Failures 2008 for Class 7 Vehicles by Top Level est Item Group (For vehicles as presented for initial test)
@@ -58,3 +56,4 @@ FROM TESTITEM_DETAIL AS a
 		ON e.PARENTID = f.TSTITMID
 		AND e.TESTCLASSID = f.TESTCLASSID
 WHERE a.TESTCLASSID = ‘5’;
+
