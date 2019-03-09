@@ -1,8 +1,0 @@
-~compile
-compile
-~compile
-package
-assembly
-use movielens;
-desc keyspaces;
-clean

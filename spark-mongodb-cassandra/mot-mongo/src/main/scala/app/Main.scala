@@ -76,19 +76,44 @@ object Main {
 		// 				item_group
 
 		//start building the mongodb full document 
-		val parentIGDF = itemGroupDF.as("parentIGDF")
-		val itemGroupJoinDF = itemGroupDF.join(parentIGDF, (itemGroupDF("parent_id") === $"parentIGDF.test_item_id") 
-					&& (itemGroupDF("test_item_set_section_id") === $"parentIGDF.test_class_id"), "left_outer").
-				select(itemGroupDF("test_item_id"), itemGroupDF("test_class_id"), 
-					itemGroupDF("test_item_set_section_id"), itemGroupDF("item_name"), 
-					struct($"parentIGDF.test_item_id", $"parentIGDF.item_name").as("parent"))
+		val baseDF = itemGroupDF.cache
+		val level1DF = baseDF.as("level1DF")
+		val level2DF = baseDF.as("level2DF")
+		val level3DF = baseDF.as("level3DF")
+		val level4DF = baseDF.as("level4DF")
 
-		val tdDF = testDetailsDF.join(itemGroupJoinDF, testDetailsDF("test_item_set_section_id") === itemGroupJoinDF("test_item_id") && 
-			testDetailsDF("test_class_id") === itemGroupJoinDF("test_class_id"), "left_outer").
-				select($"rfr_id", testDetailsDF("test_class_id"), testDetailsDF("test_item_id"), $"minor_item", $"rfr_desc", 
-					$"rfr_loc_marker", $"rfr_insp_manual_desc", $"rfr_advisory_text", testDetailsDF("test_item_set_section_id"), 
-					$"item_name".as("item_group_name"), $"parent")
+		val tdDF = baseDF.join(level1DF, (baseDF("parent_id") === $"level1DF.test_item_id") 
+					&& (baseDF("test_class_id") === $"level1DF.test_class_id"), "left_outer").
+				join(level2DF, $"level1DF.parent_id" === $"level2DF.test_item_id" 
+					&& $"level1DF.test_class_id" === $"level2DF.test_class_id", "left_outer").
+				join(level3DF, $"level2DF.parent_id" === $"level3DF.test_item_id" 
+					&& $"level2DF.test_class_id" === $"level3DF.test_class_id", "left_outer").
+				join(level4DF, $"level3DF.parent_id" === $"level4DF.test_item_id" 
+					&& $"level3DF.test_class_id" === $"level4DF.test_class_id", "left_outer").
+				join(testDetailsDF, testDetailsDF("test_item_id") === baseDF("test_item_id") && 
+					testDetailsDF("test_class_id") === baseDF("test_class_id")).
+				select(baseDF("test_class_id"), 
+					$"rfr_id",
+					baseDF("test_item_id"), 
+					$"minor_item", 
+					$"rfr_desc", 
+					$"rfr_loc_marker", 
+					$"rfr_insp_manual_desc", 
+					$"rfr_advisory_text", 
+					testDetailsDF("test_item_set_section_id"),
+					baseDF("item_name").as("item_group_level_1"), 
+					$"level1DF.item_name".as("item_group_level_2"),
+					$"level2DF.item_name".as("item_group_level_3"),
+					$"level3DF.item_name".as("item_group_level_4"),
+					$"level4DF.item_name".as("item_group_level_5"))
 
+
+		//save this to a separate collection
+		val writeConfig = WriteConfig("mot", "item_detail", s"mongodb://$mongoHost/mot", 10000, WriteConcern.W1)
+		MongoSpark.save(tdDF.write, writeConfig)
+
+				
+		//create the full test_results
 		val enrichedTestItemDF = testItemDF.join(itemLocationDF, testItemDF("location_id") === itemLocationDF("id")).
 			join(testResultDF, testItemDF("test_id") === testResultDF("test_id")).
 			join(tdDF, testItemDF("rfr_id") === tdDF("rfr_id") && testResultDF("test_class_id") === tdDF("test_class_id"), "left_outer").
@@ -96,8 +121,10 @@ object Main {
 				struct($"location_id", $"lateral", $"longitudinal", $"vertical").as("location"), 
 				$"dangerous_mark", 
 				struct(tdDF("test_class_id"), $"test_item_id", $"minor_item", $"rfr_desc", $"rfr_loc_marker", 
-					$"rfr_insp_manual_desc", $"rfr_advisory_text", $"test_item_set_section_id", $"item_group_name", 
-					$"rfr_advisory_text", $"parent").as("test_detail"))
+					$"rfr_insp_manual_desc", $"rfr_advisory_text", $"test_item_set_section_id", 
+					$"item_group_level_1", $"item_group_level_2", $"item_group_level_3", 
+					$"item_group_level_4", $"item_group_level_5").as("test_detail"))
+
 
 		val groupedItemDF = enrichedTestItemDF.groupBy("test_id").agg(collect_set(
 				struct($"test_id", $"rfr_id",  $"rfr_type_code", $"location", $"dangerous_mark", $"test_detail")
@@ -115,8 +142,8 @@ object Main {
 				$"cylinder_capacity", $"first_use_date", $"test_items")	
 
 		//write this into mongodb collection
-		val writeConfig = WriteConfig("mot", "test_result", s"mongodb://$mongoHost/mot", 10000, WriteConcern.W1)
-		MongoSpark.save(enrichedTestResultDF.write.mode("append"), writeConfig)
+		MongoSpark.save(enrichedTestResultDF.write.mode("append"), 
+			WriteConfig("mot", "test_result", s"mongodb://$mongoHost/mot", 10000, WriteConcern.W1))
 	}
 	
 	private def readLookupTable(spark: SparkSession, lookupDir: String, tablename: String) : DataFrame = {
@@ -140,28 +167,4 @@ object Main {
 		}).toMap
 	}
 
-	private def getItemGroupHierarchyDF(spark: SparkSession, itemGroupDF: DataFrame) : DataFrame = {
-		import spark.implicits._
-		val baseDF = itemGroupDF.cache
-		val level1DF = baseDF.as("level1DF")
-		val level2DF = baseDF.as("level2DF")
-		val level3DF = baseDF.as("level3DF")
-		val level4DF = baseDF.as("level4DF")
-		val itemGroupJoinDF = baseDF.join(level1DF, (baseDF("parent_id") === $"level1DF.test_item_id") 
-					&& (baseDF("test_class_id") === $"level1DF.test_class_id"), "left_outer").
-				join(level1DF, ($"level1DF.parent_id") === $"level2DF.test_item_id") 
-					&& ($"level1DF.test_class_id") === $"level2DF.test_class_id"), "left_outer").
-				join(level2DF, ($"level2DF.parent_id") === $"level3DF.test_item_id") 
-					&& ($"level2DF.test_class_id") === $"level3DF.test_class_id"), "left_outer").
-				join(level3DF, ($"level3DF.parent_id") === $"level4DF.test_item_id") 
-					&& ($"level3DF.test_class_id") === $"level4DF.test_class_id"), "left_outer").
-				join(level4DF, ($"level4DF.parent_id") === $"level5DF.test_item_id") 
-					&& ($"level4DF.test_class_id") === $"level5DF.test_class_id"), "left_outer").
-				select(baseDF("test_item_id"), baseDF("test_class_id"),
-					baseDF("item_name").as("parent_level_1"), 
-					$"level1DF.item_name".as("parent_level_2"),
-					$"level2DF.item_name".as("parent_level_3"),
-					$"level3DF.item_name".as("parent_level_4"),
-					$"level4DF.item_name".as("parent_level_5"))
-	}
 }
