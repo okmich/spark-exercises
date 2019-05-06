@@ -74,6 +74,8 @@ object Main {
 		// 		item_details
 		// 			item_group
 		// 				item_group
+		// 					item_group
+		// 						item_group
 
 		//start building the mongodb full document 
 		val baseDF = itemGroupDF.cache
@@ -124,7 +126,6 @@ object Main {
 					$"rfr_insp_manual_desc", $"rfr_advisory_text", $"test_item_set_section_id", 
 					$"item_group_level_1", $"item_group_level_2", $"item_group_level_3", 
 					$"item_group_level_4", $"item_group_level_5").as("test_detail"))
-
 
 		val groupedItemDF = enrichedTestItemDF.groupBy("test_id").agg(collect_set(
 				struct($"test_id", $"rfr_id",  $"rfr_type_code", $"location", $"dangerous_mark", $"test_detail")
