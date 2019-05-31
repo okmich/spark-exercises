@@ -131,7 +131,7 @@ IGNORE 1 LINES;
 
 
 -- write to test_item for 2005
-LOAD DATA LOCAL INFILE 'D:\\data_dump\\MOT-test-datasets\\test_item_2010.txt'
+LOAD DATA LOCAL INFILE 'D:\\data_dump\\MOT-test-datasets\\test_item_2005.txt'
 INTO TABLE testitem
 FIELDS TERMINATED BY '|'
 LINES TERMINATED BY '\n'
@@ -139,7 +139,7 @@ IGNORE 1 LINES;
 
 
 -- write to testresult for 2005
-LOAD DATA LOCAL INFILE 'D:\\data_dump\\MOT-test-datasets\\test_result_2010.txt'
+LOAD DATA LOCAL INFILE 'D:\\data_dump\\MOT-test-datasets\\test_result_2005.txt'
 INTO TABLE testresult
 FIELDS TERMINATED BY '|'
 LINES TERMINATED BY '\n'

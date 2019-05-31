@@ -15,17 +15,3 @@ test_result
 							item_group
 
 
-
-
-What we modelled in class
-===================================
-test_result
-	test_type
-	test_outcome
-	fuel_type
-
-	item_items
-		item_location
-		item_details
-			item_group
-				item_group

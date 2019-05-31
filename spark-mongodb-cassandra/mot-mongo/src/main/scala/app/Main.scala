@@ -76,6 +76,7 @@ object Main {
 		// 				item_group
 		// 					item_group
 		// 						item_group
+		// 							item_group
 
 		//start building the mongodb full document 
 		val baseDF = itemGroupDF.cache
